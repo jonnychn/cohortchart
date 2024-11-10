@@ -6,6 +6,7 @@
     <title>Cohort Analysis Table Generator</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.0.1/chart.umd.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -29,8 +30,24 @@
             font-weight: bold;
         }
         .cohort-cell {
-            color: white;
+            color: black;
             font-weight: bold;
+            border-radius: 8px;
+            position: relative;
+        }
+        .cohort-cell:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: #fff;
+            padding: 5px;
+            border-radius: 5px;
+            white-space: nowrap;
+            font-size: 12px;
+            z-index: 10;
         }
     </style>
 </head>
@@ -41,6 +58,9 @@
         <input type="file" id="file-upload" accept=".xlsx">
     </div>
     <table id="cohort-table"></table>
+    <div id="chart-container" style="margin-top: 40px;">
+        <canvas id="retention-chart"></canvas>
+    </div>
 
     <script>
         document.getElementById('file-upload').addEventListener('change', handleFileUpload);
@@ -56,6 +76,7 @@
                 const worksheet = workbook.Sheets[sheetName];
                 const jsonData = XLSX.utils.sheet_to_json(worksheet);
                 generateCohortTable(jsonData);
+                generateRetentionChart(jsonData);
             };
 
             reader.readAsArrayBuffer(file);
@@ -110,6 +131,7 @@
                     cell.textContent = `${retentionRate}%`;
                     cell.classList.add('cohort-cell');
                     cell.style.backgroundColor = getColorForRate(retentionRate);
+                    cell.setAttribute('data-tooltip', `${count} users remaining`);
                     row.appendChild(cell);
                 });
 
@@ -122,12 +144,96 @@
             if (rate >= 25) {
                 return '#4caf50'; // Green
             } else if (rate >= 15) {
-                return '#ffeb3b'; // Yellow
+                return '#ffcc00'; // Dark Yellow for better visibility
             } else if (rate >= 5) {
                 return '#ff9800'; // Orange
             } else {
                 return '#f44336'; // Red
             }
+        }
+
+        function generateRetentionChart(data) {
+            const cohorts = {};
+
+            data.forEach(user => {
+                const cohortMonth = user['Cohort Month'];
+                if (!cohorts[cohortMonth]) {
+                    cohorts[cohortMonth] = {
+                        totalUsers: 0,
+                        retention: []
+                    };
+                }
+
+                cohorts[cohortMonth].totalUsers++;
+
+                Object.keys(user).forEach(key => {
+                    if (key.startsWith('Week')) {
+                        const weekIndex = parseInt(key.split(' ')[1]) - 1;
+                        if (!cohorts[cohortMonth].retention[weekIndex]) {
+                            cohorts[cohortMonth].retention[weekIndex] = 0;
+                        }
+                        cohorts[cohortMonth].retention[weekIndex] += user[key];
+                    }
+                });
+            });
+
+            const labels = Array.from({ length: Math.max(...Object.values(cohorts).map(cohort => cohort.retention.length)) }, (_, i) => `Week ${i + 1}`);
+            const datasets = [];
+
+            Object.keys(cohorts).forEach((cohortMonth, index) => {
+                const cohort = cohorts[cohortMonth];
+                const totalUsers = cohort.totalUsers;
+                const retentionRates = cohort.retention.map(count => (count / totalUsers) * 100);
+                datasets.push({
+                    label: cohortMonth,
+                    data: retentionRates,
+                    fill: false,
+                    borderColor: `hsl(${index * 30}, 100%, 50%)`,
+                    backgroundColor: `hsl(${index * 30}, 100%, 50%)`,
+                    borderWidth: 2,
+                    tension: 0.1
+                });
+            });
+
+            const ctx = document.getElementById('retention-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Weeks After Signup'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Retention Rate (%)'
+                            },
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
         }
     </script>
 </body>
