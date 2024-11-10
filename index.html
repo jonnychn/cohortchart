@@ -58,6 +58,12 @@
             width: 100%;
             height: 100%;
         }
+        .adjuster-container {
+            margin-top: 20px;
+        }
+        .adjuster-container label {
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
@@ -66,6 +72,18 @@
         <label for="file-upload">Upload Cohort Raw Data Excel File:</label>
         <input type="file" id="file-upload" accept=".xlsx">
         <button id="export-button" style="margin-left: 20px;">Export CSV</button>
+    </div>
+    <div class="adjuster-container">
+        <label for="green-threshold">Green Threshold (%):</label>
+        <input type="number" id="green-threshold" value="25" min="0" max="100">
+
+        <label for="yellow-threshold">Yellow Threshold (%):</label>
+        <input type="number" id="yellow-threshold" value="15" min="0" max="100">
+
+        <label for="orange-threshold">Orange Threshold (%):</label>
+        <input type="number" id="orange-threshold" value="5" min="0" max="100">
+
+        <button id="update-thresholds">Update Thresholds</button>
     </div>
     <table id="cohort-table"></table>
     <div id="chart-container">
@@ -78,6 +96,9 @@
 
         document.getElementById('file-upload').addEventListener('change', handleFileUpload);
         document.getElementById('export-button').addEventListener('click', exportCSV);
+        document.getElementById('update-thresholds').addEventListener('click', () => {
+            generateCohortTable(cohortData);
+        });
 
         function handleFileUpload(event) {
             const file = event.target.files[0];
@@ -155,11 +176,15 @@
 
         function getColorForRate(rate) {
             rate = parseFloat(rate);
-            if (rate >= 25) {
+            const greenThreshold = parseFloat(document.getElementById('green-threshold').value);
+            const yellowThreshold = parseFloat(document.getElementById('yellow-threshold').value);
+            const orangeThreshold = parseFloat(document.getElementById('orange-threshold').value);
+
+            if (rate >= greenThreshold) {
                 return '#4caf50'; // Green
-            } else if (rate >= 15) {
+            } else if (rate >= yellowThreshold) {
                 return '#ffcc00'; // Dark Yellow for better visibility
-            } else if (rate >= 5) {
+            } else if (rate >= orangeThreshold) {
                 return '#ff9800'; // Orange
             } else {
                 return '#f44336'; // Red
