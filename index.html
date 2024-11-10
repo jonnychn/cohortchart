@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cohort Analysis Chart Generator</title>
+    <title>Cohort Analysis Table Generator</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.0.1/chart.umd.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -15,27 +14,33 @@
         .upload-container {
             margin-bottom: 20px;
         }
-        #chart-container {
+        #cohort-table {
             width: 100%;
-            height: 500px;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        #cohort-table th, #cohort-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        #cohort-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
         }
         .cohort-cell {
-            text-align: center;
-            padding: 8px;
             color: white;
             font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h1>Cohort Analysis Chart Generator</h1>
+    <h1>Cohort Analysis Table Generator</h1>
     <div class="upload-container">
         <label for="file-upload">Upload Cohort Raw Data Excel File:</label>
         <input type="file" id="file-upload" accept=".xlsx">
     </div>
-    <div id="chart-container">
-        <canvas id="cohort-chart"></canvas>
-    </div>
+    <table id="cohort-table"></table>
 
     <script>
         document.getElementById('file-upload').addEventListener('change', handleFileUpload);
@@ -50,13 +55,13 @@
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
                 const jsonData = XLSX.utils.sheet_to_json(worksheet);
-                generateCohortChart(jsonData);
+                generateCohortTable(jsonData);
             };
 
             reader.readAsArrayBuffer(file);
         }
 
-        function generateCohortChart(data) {
+        function generateCohortTable(data) {
             const cohorts = {};
 
             data.forEach(user => {
@@ -81,62 +86,48 @@
                 });
             });
 
-            const labels = Object.keys(cohorts);
-            const datasets = [];
+            const table = document.getElementById('cohort-table');
+            table.innerHTML = '';
 
-            labels.forEach((label, index) => {
-                const totalUsers = cohorts[label].totalUsers;
-                const retentionRates = cohorts[label].retention.map(count => (count / totalUsers) * 100);
-                datasets.push({
-                    label: label,
-                    data: retentionRates,
-                    fill: false,
-                    borderColor: `hsl(${index * 30}, 100%, 50%)`,
-                    backgroundColor: `hsl(${index * 30}, 100%, 50%)`,
-                    borderWidth: 2,
-                    tension: 0.1
+            // Create table header
+            const headerRow = document.createElement('tr');
+            headerRow.innerHTML = '<th>Cohort Month</th><th>New Users</th>';
+            const maxWeeks = Math.max(...Object.values(cohorts).map(cohort => cohort.retention.length));
+            for (let i = 0; i < maxWeeks; i++) {
+                headerRow.innerHTML += `<th>Week ${i + 1}</th>`;
+            }
+            table.appendChild(headerRow);
+
+            // Create table rows
+            Object.keys(cohorts).forEach(cohortMonth => {
+                const cohort = cohorts[cohortMonth];
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${cohortMonth}</td><td>${cohort.totalUsers}</td>`;
+
+                cohort.retention.forEach((count, weekIndex) => {
+                    const retentionRate = ((count / cohort.totalUsers) * 100).toFixed(1);
+                    const cell = document.createElement('td');
+                    cell.textContent = `${retentionRate}%`;
+                    cell.classList.add('cohort-cell');
+                    cell.style.backgroundColor = getColorForRate(retentionRate);
+                    row.appendChild(cell);
                 });
-            });
 
-            const ctx = document.getElementById('cohort-chart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels.map((_, i) => `Week ${i + 1}`),
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}%`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Weeks After Signup'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Retention Rate (%)'
-                            },
-                            beginAtZero: true,
-                            max: 100
-                        }
-                    }
-                }
+                table.appendChild(row);
             });
+        }
+
+        function getColorForRate(rate) {
+            rate = parseFloat(rate);
+            if (rate >= 25) {
+                return '#4caf50'; // Green
+            } else if (rate >= 15) {
+                return '#ffeb3b'; // Yellow
+            } else if (rate >= 5) {
+                return '#ff9800'; // Orange
+            } else {
+                return '#f44336'; // Red
+            }
         }
     </script>
 </body>
