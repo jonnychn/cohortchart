@@ -118,12 +118,10 @@
         <br>
         <button id="export-button">Export CSV</button>
     </div>
-    <div class="description-container">
-        <h2 style="color: #4caf50;">How to Interpret the Cohort Table and Retention Curve</h2>
-        <p>The <strong>Cohort Analysis Table</strong> shows the retention rate of users over time, starting from when they signed up. Each row represents a group of users who signed up during the same time period (a cohort). The percentages in each column indicate how many users are still active after a certain number of weeks. The color coding helps visualize the retention trends: green for higher retention, yellow for moderate, orange for low, and red for very low retention.</p>
-        <p>The <strong>Retention Curve Chart</strong> below the table shows how user retention changes week by week for each cohort. This helps you understand if users tend to leave your product early or if they continue using it over time. Ideally, a flatter curve indicates better user retention, whereas a steep drop-off suggests many users stop using the product shortly after signing up.</p>
-    </div>
-    <div style="overflow-x: auto;">
+    <div class="description-container">$1</div>
+<br>
+<button id="export-button">Export CSV</button>
+<div style="overflow-x: auto;">
         <table id="cohort-table"></table>
     </div>
     <div id="chart-container">
@@ -158,7 +156,7 @@
             const cohorts = {};
 
             data.forEach(user => {
-                const cohortMonth = user['Cohort Month'];
+                const cohortMonth = `${user['Cohort Month']} ${user['Year']}`;
                 if (!cohorts[cohortMonth]) {
                     cohorts[cohortMonth] = {
                         totalUsers: 0,
