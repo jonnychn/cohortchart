@@ -209,6 +209,8 @@
                 });
             });
 
+            const maxYValue = Math.ceil(Math.max(...datasets.flatMap(dataset => dataset.data)) / 10) * 10;
+
             const ctx = document.getElementById('retention-chart').getContext('2d');
             if (chartInstance) {
                 chartInstance.destroy();
@@ -247,7 +249,7 @@
                                 text: 'Retention Rate (%)'
                             },
                             beginAtZero: true,
-                            max: 100
+                            suggestedMax: maxYValue
                         }
                     }
                 }
