@@ -156,7 +156,7 @@
             const cohorts = {};
 
             data.forEach(user => {
-                const cohortMonth = `${user['Cohort Month']} ${user['Year']}`;
+                const cohortMonth = user['Cohort Month'];
                 if (!cohorts[cohortMonth]) {
                     cohorts[cohortMonth] = {
                         totalUsers: 0,
