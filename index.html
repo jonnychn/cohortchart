@@ -45,18 +45,22 @@
             background-color: #45a049;
         }
         #cohort-table {
-            width: 100%;
+            width: auto;
+            max-width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
             background-color: #ffffff;
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            table-layout: fixed;
         }
         #cohort-table th, #cohort-table td {
             border: 1px solid #ddd;
             padding: 10px;
             text-align: center;
+            width: auto;
+            word-wrap: break-word;
         }
         #cohort-table th {
             background-color: #4caf50;
@@ -96,6 +100,14 @@
             width: 100%;
             height: 100%;
         }
+        .description-container {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            line-height: 1.6;
+        }
     </style>
 </head>
 <body>
@@ -106,7 +118,14 @@
         <br>
         <button id="export-button">Export CSV</button>
     </div>
-    <table id="cohort-table"></table>
+    <div class="description-container">
+        <h2 style="color: #4caf50;">How to Interpret the Cohort Table and Retention Curve</h2>
+        <p>The <strong>Cohort Analysis Table</strong> shows the retention rate of users over time, starting from when they signed up. Each row represents a group of users who signed up during the same time period (a cohort). The percentages in each column indicate how many users are still active after a certain number of weeks. The color coding helps visualize the retention trends: green for higher retention, yellow for moderate, orange for low, and red for very low retention.</p>
+        <p>The <strong>Retention Curve Chart</strong> below the table shows how user retention changes week by week for each cohort. This helps you understand if users tend to leave your product early or if they continue using it over time. Ideally, a flatter curve indicates better user retention, whereas a steep drop-off suggests many users stop using the product shortly after signing up.</p>
+    </div>
+    <div style="overflow-x: auto;">
+        <table id="cohort-table"></table>
+    </div>
     <div id="chart-container">
         <canvas id="retention-chart"></canvas>
     </div>
