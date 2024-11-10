@@ -65,6 +65,7 @@
     <div class="upload-container">
         <label for="file-upload">Upload Cohort Raw Data Excel File:</label>
         <input type="file" id="file-upload" accept=".xlsx">
+        <button id="export-button" style="margin-left: 20px;">Export CSV</button>
     </div>
     <table id="cohort-table"></table>
     <div id="chart-container">
@@ -73,8 +74,10 @@
 
     <script>
         let chartInstance = null;
+        let cohortData = null;
 
         document.getElementById('file-upload').addEventListener('change', handleFileUpload);
+        document.getElementById('export-button').addEventListener('click', exportCSV);
 
         function handleFileUpload(event) {
             const file = event.target.files[0];
@@ -85,9 +88,9 @@
                 const workbook = XLSX.read(data, { type: 'array' });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet);
-                generateCohortTable(jsonData);
-                generateRetentionChart(jsonData);
+                cohortData = XLSX.utils.sheet_to_json(worksheet);
+                generateCohortTable(cohortData);
+                generateRetentionChart(cohortData);
             };
 
             reader.readAsArrayBuffer(file);
@@ -249,6 +252,65 @@
                     }
                 }
             });
+        }
+
+        function exportCSV() {
+            if (!cohortData) {
+                alert('Please upload a file first.');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            const cohorts = {};
+
+            cohortData.forEach(user => {
+                const cohortMonth = user['Cohort Month'];
+                if (!cohorts[cohortMonth]) {
+                    cohorts[cohortMonth] = {
+                        totalUsers: 0,
+                        retention: []
+                    };
+                }
+
+                cohorts[cohortMonth].totalUsers++;
+
+                Object.keys(user).forEach(key => {
+                    if (key.startsWith('Week')) {
+                        const weekIndex = parseInt(key.split(' ')[1]) - 1;
+                        if (!cohorts[cohortMonth].retention[weekIndex]) {
+                            cohorts[cohortMonth].retention[weekIndex] = 0;
+                        }
+                        cohorts[cohortMonth].retention[weekIndex] += user[key];
+                    }
+                });
+            });
+
+            // Create CSV header
+            csvContent += 'Cohort Month,New Users';
+            const maxWeeks = Math.max(...Object.values(cohorts).map(cohort => cohort.retention.length));
+            for (let i = 0; i < maxWeeks; i++) {
+                csvContent += `,Week ${i + 1}`;
+            }
+            csvContent += '\n';
+
+            // Create CSV rows
+            Object.keys(cohorts).forEach(cohortMonth => {
+                const cohort = cohorts[cohortMonth];
+                let row = `${cohortMonth},${cohort.totalUsers}`;
+                cohort.retention.forEach((count, weekIndex) => {
+                    const retentionRate = ((count / cohort.totalUsers) * 100).toFixed(1);
+                    row += `,${retentionRate}%`;
+                });
+                csvContent += row + '\n';
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'cohort_analysis.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
     </script>
 </body>
